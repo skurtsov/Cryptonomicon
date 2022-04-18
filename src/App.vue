@@ -23,28 +23,17 @@
               class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap"
             >
               <span
-                v-on:click="(ticker = 'BTC'), add()"
+                v-for="(idx, key) in auto_t"
+                :key="key"
+                @click="(ticker = auto_t[key]), add()"
                 class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
               >
-                BTC
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                DOGE
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                BCH
-              </span>
-              <span
-                class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
-              >
-                CHD
+                {{ auto_t[key] }}
               </span>
             </div>
-            <div class="text-sm text-red-600">Такой тикер уже добавлен</div>
+            <div class="text-sm text-red-600" v-show="is_duplicate">
+              Такой тикер уже добавлен
+            </div>
           </div>
         </div>
         <button
@@ -164,26 +153,38 @@ export default {
       tickers: [],
       sel: null,
       graph: [],
+      auto_t: ["BTC", "ETH", "TESLA", "BCH"],
+      is_duplicate: false,
     };
   },
   methods: {
     add() {
       const currentTicker = {
-        name: this.ticker,
+        name: this.ticker.toUpperCase(),
         price: "-",
       };
+      // var ti_copy = JSON.parse(JSON.stringify(this.tickers));
+      for (let i = 0; i < this.tickers.length; i++) {
+        if (this.tickers[i]?.name == currentTicker.name) {
+          console.log("такой тикер уже добавлен");
+          this.is_duplicate = true;
+          return false;
+        }
+      }
+
       this.tickers.push(currentTicker);
+      this.is_duplicate = false;
       setInterval(async () => {
         const f = await fetch(
           `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=112882cfa32d3e1389c36b1bc274e691fbff8f652a9a4284c8459fce17419efd`,
         );
         const data = await f.json();
-        //Reactivenot work
-        this.tickers.find((t) => t.name === currentTicker.name).price = data;
+        //Reactive not work
+        this.tickers.find((t) => t.name === currentTicker?.name).price = data;
         currentTicker.price = data.USD;
         if (this.sel?.name === currentTicker.name) {
           this.graph.push(data.USD);
-          console.log(this.graph);
+          // console.log(this.graph);
         }
       }, 3000);
     },
@@ -198,6 +199,9 @@ export default {
     selectTic(t) {
       this.sel = t;
       this.graph = [];
+    },
+    isT(ti) {
+      return this.tickers.includes(ti);
     },
   },
 };
