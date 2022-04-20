@@ -157,13 +157,37 @@ export default {
       is_duplicate: false,
     };
   },
+  created() {
+    const tickersData = localStorage.getItem("cryptoStor");
+    if (tickersData) {
+      this.tickers = JSON.parse(tickersData);
+      this.tickers.forEach((t) => {
+        this.getTicFromServer(t);
+      });
+    }
+  },
   methods: {
+    getTicFromServer(tic_from_server) {
+      setInterval(async () => {
+        const f = await fetch(
+          `https://min-api.cryptocompare.com/data/price?fsym=${tic_from_server.name}&tsyms=USD&api_key=112882cfa32d3e1389c36b1bc274e691fbff8f652a9a4284c8459fce17419efd`,
+        );
+        const data = await f.json();
+        //Reactive not work
+        this.tickers.find((t) => t.name === tic_from_server?.name).price = data;
+        tic_from_server.price = data.USD;
+        if (this.sel?.name === tic_from_server.name) {
+          this.graph.push(data.USD);
+          // console.log(this.graph);
+        }
+      }, 3000);
+    },
     add() {
       const currentTicker = {
         name: this.ticker.toUpperCase(),
         price: "-",
       };
-      // var ti_copy = JSON.parse(JSON.stringify(this.tickers));
+      // Form Validation
       for (let i = 0; i < this.tickers.length; i++) {
         if (this.tickers[i]?.name == currentTicker.name) {
           console.log("такой тикер уже добавлен");
@@ -174,19 +198,8 @@ export default {
 
       this.tickers.push(currentTicker);
       this.is_duplicate = false;
-      setInterval(async () => {
-        const f = await fetch(
-          `https://min-api.cryptocompare.com/data/price?fsym=${currentTicker.name}&tsyms=USD&api_key=112882cfa32d3e1389c36b1bc274e691fbff8f652a9a4284c8459fce17419efd`,
-        );
-        const data = await f.json();
-        //Reactive not work
-        this.tickers.find((t) => t.name === currentTicker?.name).price = data;
-        currentTicker.price = data.USD;
-        if (this.sel?.name === currentTicker.name) {
-          this.graph.push(data.USD);
-          // console.log(this.graph);
-        }
-      }, 3000);
+      this.getTicFromServer(currentTicker);
+      localStorage.setItem("cryptoStor", JSON.stringify(this.tickers));
     },
     ticRemove(ttremove) {
       this.tickers = this.tickers.filter((t) => t != ttremove);
